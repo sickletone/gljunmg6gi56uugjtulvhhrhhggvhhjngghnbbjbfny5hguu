@@ -787,7 +787,6 @@ function Library:MakeResizable(Instance, MinSize, MaxSize)
         Position = UDim2.new(0, 0, 1, 0);
         Size = UDim2.fromOffset(18, 18);
         Image = "";
-        Text = "";
         ZIndex = 50;
         Parent = Instance;
     });
