@@ -729,22 +729,6 @@ MobileGroup:AddToggle("MobileInvisible", {
     Default = Library.MobileButtonConfig.Invisible,
     Callback = function(v) Library:SetMobileInvisible(v) end
 })
-MobileGroup:AddSlider("WindowCorner", {
-    Text = "Window Corner",
-    Default = Library.WindowCornerRadius,
-    Min = 0, Max = 24, Rounding = 0,
-    Callback = function(v) Library:SetWindowCornerRadius(v) end
-})
-MobileGroup:AddSlider("WindowTransparency", {
-    Text = "Window Transparency",
-    Default = Library.WindowTransparency,
-    Min = 0, Max = 0.8, Rounding = 2,
-    Callback = function(v) Library:SetWindowTransparency(v) end
-})
-MobileGroup:AddButton({ Text = "Lock / Unlock UI", Func = function()
-    Library:SetUILocked(not Library.UILocked)
-    Library:Notify(Library.UILocked and "UI Locked" or "UI Unlocked")
-end})
 
 -- Top bar appearance
 local TopBarGroup = Tabs["UI Settings"]:AddRightGroupbox("Top Bar")
@@ -792,6 +776,17 @@ GlassGroup:AddSlider("GlassIntensity", {
     Min = 0, Max = 0.9, Rounding = 2,
     Callback = function(v) Library:SetGlassIntensity(v) end
 })
+GlassGroup:AddToggle("BackgroundBlur", {
+    Text = "Blur Background",
+    Default = Library.UseBlur,
+    Callback = function(v) Library:SetBackgroundBlur(v, Library.BlurSize) end
+})
+GlassGroup:AddSlider("BlurSize", {
+    Text = "Blur Size",
+    Default = Library.BlurSize,
+    Min = 0, Max = 40, Rounding = 0,
+    Callback = function(v) Library:SetBackgroundBlur(Library.UseBlur, v) end
+})
 
 -- Layout and display
 local LayoutGroup = Tabs["UI Settings"]:AddLeftGroupbox("Layout")
@@ -808,6 +803,18 @@ LayoutGroup:AddDropdown("TabPosition", {
     Default = 1,
     Callback = function(v) Library:SetTabPosition(v) end
 })
+LayoutGroup:AddSlider("WindowCorner", {
+    Text = "Window Corner",
+    Default = Library.WindowCornerRadius,
+    Min = 0, Max = 24, Rounding = 0,
+    Callback = function(v) Library:SetWindowCornerRadius(v) end
+})
+LayoutGroup:AddSlider("WindowTransparency", {
+    Text = "Window Transparency",
+    Default = Library.WindowTransparency,
+    Min = 0, Max = 0.8, Rounding = 2,
+    Callback = function(v) Library:SetWindowTransparency(v) end
+})
 LayoutGroup:AddInput("CustomBGInput", {
     Text = "Background ID",
     Default = "",
@@ -823,6 +830,10 @@ LayoutGroup:AddButton({ Text = "Set Background", Func = function()
 end}):AddButton({ Text = "Clear Background", Func = function()
     Library:RemoveCustomBackground()
     Library:Notify("Background cleared")
+end})
+LayoutGroup:AddButton({ Text = "Lock / Unlock UI", Func = function()
+    Library:SetUILocked(not Library.UILocked)
+    Library:Notify(Library.UILocked and "UI Locked" or "UI Unlocked")
 end})
 
 -- Library functions
