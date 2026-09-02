@@ -318,14 +318,22 @@ function Library:RefreshGlass()
 end;
 
 -- Turns the frosted-glass material on or off for every marked surface
--- (windows, the top bar, sub windows), and enables the background blur
--- that makes the translucency read as glass rather than a flat tint.
+-- (windows, the top bar, sub windows). This only affects the UI's own
+-- translucency and edge highlight — it does not touch the background blur,
+-- since blurring the whole game view is a separate, bigger decision the
+-- person should opt into themselves (see SetBackgroundBlur).
 function Library:SetGlassEnabled(Enabled)
     Library.GlassEnabled = Enabled
     Library:RefreshGlass()
-    if Enabled then
-        Library.UseBlur = true
-        Library.BlurSize = math.max(Library.BlurSize, 18)
+end;
+
+-- Sets whether the 3D world behind the UI is blurred, and how strong.
+-- Off by default. Not tied to glass mode, since blurring the whole screen
+-- affects gameplay visibility, not just the UI.
+function Library:SetBackgroundBlur(Enabled, Size)
+    Library.UseBlur = Enabled
+    if Size then
+        Library.BlurSize = Size
     end
     Library:UpdateBlur()
 end;
@@ -386,8 +394,14 @@ function Library:SetMobileButtonTransparency(Alpha)
             end;
         end;
     end;
+end;
+
+-- Shows or hides the mobile lock/toggle buttons regardless of platform.
+-- They're shown automatically on touch devices and hidden on everything
+-- else; use this to override that (e.g. to test the mobile layout on PC).
+function Library:SetMobileButtonsEnabled(Enabled)
     if Library.MobileGui then
-        Library.MobileGui.Enabled = true
+        Library.MobileGui.Enabled = Enabled
     end
 end;
 
@@ -468,6 +482,10 @@ function Library:RemoveCustomBackground()
     Library.CustomBackgroundId = nil
     Library.CustomBackgroundFrame.Image = ""
 end;
+-- Moves the tab bar to Top, Bottom, Left, or Right, or keeps it at the top
+-- with the tabs centered instead of left-aligned (Center). Resizes every
+-- existing tab button to match: full sidebar width for Left/Right, natural
+-- text width for the horizontal positions.
 function Library:SetTabPosition(Position)
     Library.TabPosition = Position
     local refs = Library.WindowRefs
@@ -476,47 +494,54 @@ function Library:SetTabPosition(Position)
     local main = refs.MainSectionOuter
     local area = refs.TabArea
     local layout = area:FindFirstChildOfClass("UIListLayout")
-    if Position == "Top" then
-        outer.AnchorPoint = Vector2.new(0,0)
-        outer.Position = UDim2.new(0,8,0,25)
-        outer.Size = UDim2.new(1,-16,0,29)
-        main.Position = UDim2.new(0,8,0,58)
-        main.Size = UDim2.new(1,-16,1,-66)
-        if layout then layout.FillDirection = Enum.FillDirection.Horizontal end
-        outer.Visible = true
+    local IsSidebar = (Position == "Left" or Position == "Right")
+
+    if Position == "Top" or Position == "Center" then
+        outer.AnchorPoint = Vector2.new(0, 0)
+        outer.Position = UDim2.new(0, 8, 0, 25)
+        outer.Size = UDim2.new(1, -16, 0, 29)
+        main.Position = UDim2.new(0, 8, 0, 58)
+        main.Size = UDim2.new(1, -16, 1, -66)
     elseif Position == "Bottom" then
-        outer.AnchorPoint = Vector2.new(0,0)
-        outer.Position = UDim2.new(0,8,1,-37)
-        outer.Size = UDim2.new(1,-16,0,29)
-        main.Position = UDim2.new(0,8,0,8)
-        main.Size = UDim2.new(1,-16,1,-45)
-        if layout then layout.FillDirection = Enum.FillDirection.Horizontal end
-        outer.Visible = true
+        outer.AnchorPoint = Vector2.new(0, 0)
+        outer.Position = UDim2.new(0, 8, 1, -37)
+        outer.Size = UDim2.new(1, -16, 0, 29)
+        main.Position = UDim2.new(0, 8, 0, 8)
+        main.Size = UDim2.new(1, -16, 1, -45)
     elseif Position == "Left" then
-        outer.AnchorPoint = Vector2.new(0,0)
-        outer.Position = UDim2.new(0,8,0,25)
-        outer.Size = UDim2.new(0,110,1,-33)
-        main.Position = UDim2.new(0,126,0,25)
-        main.Size = UDim2.new(1,-134,1,-33)
-        if layout then layout.FillDirection = Enum.FillDirection.Vertical end
-        outer.Visible = true
+        outer.AnchorPoint = Vector2.new(0, 0)
+        outer.Position = UDim2.new(0, 8, 0, 25)
+        outer.Size = UDim2.new(0, 110, 1, -33)
+        main.Position = UDim2.new(0, 126, 0, 25)
+        main.Size = UDim2.new(1, -134, 1, -33)
     elseif Position == "Right" then
-        outer.AnchorPoint = Vector2.new(0,0)
-        outer.Position = UDim2.new(1,-118,0,25)
-        outer.Size = UDim2.new(0,110,1,-33)
-        main.Position = UDim2.new(0,8,0,25)
-        main.Size = UDim2.new(1,-134,1,-33)
-        if layout then layout.FillDirection = Enum.FillDirection.Vertical end
-        outer.Visible = true
-    elseif Position == "Center" then
-        outer.AnchorPoint = Vector2.new(0.5,0)
-        outer.Position = UDim2.new(0.5,0,0,25)
-        outer.Size = UDim2.new(1,-16,0,29)
-        main.Position = UDim2.new(0,8,0,58)
-        main.Size = UDim2.new(1,-16,1,-66)
-        if layout then layout.FillDirection = Enum.FillDirection.Horizontal end
-        outer.Visible = true
+        outer.AnchorPoint = Vector2.new(0, 0)
+        outer.Position = UDim2.new(1, -118, 0, 25)
+        outer.Size = UDim2.new(0, 110, 1, -33)
+        main.Position = UDim2.new(0, 8, 0, 25)
+        main.Size = UDim2.new(1, -134, 1, -33)
+    else
+        return
     end
+
+    if layout then
+        layout.FillDirection = IsSidebar and Enum.FillDirection.Vertical or Enum.FillDirection.Horizontal
+        layout.HorizontalAlignment = (Position == "Center") and Enum.HorizontalAlignment.Center or Enum.HorizontalAlignment.Left
+    end
+
+    if refs.Tabs then
+        for _, Tab in next, refs.Tabs do
+            if Tab.Button then
+                if IsSidebar then
+                    Tab.Button.Size = UDim2.new(1, 0, 0, 26)
+                else
+                    Tab.Button.Size = UDim2.new(0, (Tab.ButtonWidth or 60) + 8 + 4, 1, 0)
+                end
+            end
+        end
+    end
+
+    outer.Visible = true
 end;
 function Library:SetWindowTransparency(Alpha)
     Alpha = math.clamp(Alpha, 0, 1)
@@ -4189,10 +4214,11 @@ function Library:CreateWindow(...)
         };
 
         local TabButtonWidth = Library:GetTextBounds(Name, Library.Font, Library.FontSize + 2);
+        local IsSidebar = (Library.TabPosition == "Left" or Library.TabPosition == "Right")
         local TabButton = Library:Create('Frame', {
             BackgroundColor3 = Library.BackgroundColor;
             BorderSizePixel = 0;
-            Size = UDim2.new(0, TabButtonWidth + 8 + 4, 1, 0);
+            Size = IsSidebar and UDim2.new(1, 0, 0, 26) or UDim2.new(0, TabButtonWidth + 8 + 4, 1, 0);
             ZIndex = 1;
             Parent = TabArea;
         });
@@ -4571,6 +4597,8 @@ function Library:CreateWindow(...)
         if #TabContainer:GetChildren() == 1 then
             Tab:ShowTab();
         end;
+        Tab.Button = TabButton;
+        Tab.ButtonWidth = TabButtonWidth;
         Window.Tabs[Name] = Tab;
         return Tab;
     end;
@@ -4676,7 +4704,8 @@ function Library:CreateWindow(...)
         TabContainer = TabContainer,
         TabArea = TabArea,
         Outer = Outer,
-        Inner = Inner
+        Inner = Inner,
+        Tabs = Window.Tabs
     };
     Library.CurrentWindow = Window;
     Window.Holder = Outer;
@@ -4703,6 +4732,7 @@ do
     MobileGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
     ProtectGui(MobileGui)
     MobileGui.Parent = CoreGui
+    MobileGui.Enabled = InputService.TouchEnabled
     Library.MobileGui = MobileGui
 
     local cfg = Library.MobileButtonConfig
